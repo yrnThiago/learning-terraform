@@ -2,8 +2,8 @@ name: Create S3 Static Site
 
 on:
   issues:
-    type:
-      -opened
+    types:
+      - opened
 
 jobs:
   deploy:
@@ -20,24 +20,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Extract Bucket Name from Issue
-        run:
-          export BUCKET_NAME=$(echo "${{ github.event.issue.title }}")
-          echo "Bucket Name: $BUCKET_NAME"
-          echo "BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_ENV
-
-      - name:
+      - name: Extract Bucket Name from Issue Title
         run: |
-          cd terraform
-          cd s3-bucket-static
+          echo "BUCKET_NAME=${{ github.event.issue.title }}" >> $GITHUB_ENV
+
+      - name: Apply Terraform
+        run: |
+          cd terraform/s3-bucket-static
           terraform init
           terraform apply -auto-approve -var="bucket_name=${{ env.BUCKET_NAME }}"
 
-      - name: Add coment
+      - name: Install GitHub CLI
+        run: sudo apt-get install gh -y
+
+      - name: Comment on Issue
         run: gh issue comment "$NUMBER" --repo "$REPO" --body "$BODY"
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           NUMBER: ${{ github.event.issue.number }}
           REPO: ${{ github.repository }}
-          BODY: >
-            O bucket S3 foi criado com sucesso!
+          BODY: O bucket S3 foi criado com sucesso!
+
